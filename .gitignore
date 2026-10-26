@@ -1,0 +1,46 @@
+# Python environment
+venv/
+.venv/
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# VS Code and OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Optional model files
+fraud_model.pkl
+isolation_forest_model.pkl
+logistic_regression_model.pkl
+xgboost_fraud_model.pkl
+
+# Optional visualizations and analysis outputs
+amount_comparison.png
+amount_comparison_symlog.png
+class_distribution.png
+feature_importance.png
+model_comparison.csv
+week 1.ipynb
+
+# Unrelated or potentially separate projects
+app.py
+leetcode.py
+basic.html
+new.html
+night.html
+training.js
+RAG
+project
+# Dataset - do not upload
+data/
