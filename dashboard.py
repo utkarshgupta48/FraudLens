@@ -417,6 +417,118 @@ try:
         hide_index=True
     )
 
+    # -------------------------------
+    # COMPARE ALL AVAILABLE MODELS
+    # -------------------------------
+
+    st.markdown("## Compare all models")
+    st.write(
+        "Run the same uploaded transactions through every available saved model "
+        "to compare their predictions side by side. For evaluation metrics, "
+        "include the actual Class column in the CSV."
+    )
+
+    if st.button(
+        "Compare all available models",
+        use_container_width=True,
+        key="compare_all_models",
+        type="primary"
+    ):
+        comparison_rows = []
+        comparison_predictions = {}
+
+        with st.spinner("Comparing models on the uploaded transactions..."):
+            for comparison_name in available_models:
+                try:
+                    comparison_model = load_model(
+                        str(MODEL_PATHS[comparison_name])
+                    )
+                    comparison_features = list(
+                        comparison_model.feature_names_in_
+                    )
+                    comparison_X = X_upload[comparison_features]
+                    comparison_pred = predict_transactions(
+                        comparison_model,
+                        comparison_name,
+                        comparison_X
+                    )
+                    comparison_predictions[comparison_name] = comparison_pred
+
+                    row = {
+                        "Model": comparison_name,
+                        "Transactions": len(comparison_pred),
+                        "Potential Fraud": int((comparison_pred == 1).sum()),
+                        "Legitimate": int((comparison_pred == 0).sum()),
+                        "Predicted Fraud Rate (%)": round(
+                            float((comparison_pred == 1).mean() * 100), 2
+                        )
+                    }
+
+                    if actual_labels is not None:
+                        row.update({
+                            "Accuracy (%)": round(
+                                accuracy_score(actual_labels, comparison_pred) * 100, 2
+                            ),
+                            "Fraud Precision (%)": round(
+                                precision_score(
+                                    actual_labels, comparison_pred, zero_division=0
+                                ) * 100, 2
+                            ),
+                            "Fraud Recall (%)": round(
+                                recall_score(
+                                    actual_labels, comparison_pred, zero_division=0
+                                ) * 100, 2
+                            ),
+                            "Fraud F1-score (%)": round(
+                                f1_score(
+                                    actual_labels, comparison_pred, zero_division=0
+                                ) * 100, 2
+                            )
+                        })
+
+                    comparison_rows.append(row)
+
+                except Exception as model_exc:
+                    st.warning(
+                        f"Could not compare {comparison_name}: {model_exc}"
+                    )
+
+        if comparison_rows:
+            comparison_df = pd.DataFrame(comparison_rows)
+            st.session_state["fraudlens_model_comparison"] = comparison_df
+            st.session_state["fraudlens_comparison_predictions"] = {
+                name: pred.tolist()
+                for name, pred in comparison_predictions.items()
+            }
+            st.session_state["fraudlens_comparison_file_name"] = uploaded_file.name
+
+    saved_comparison = st.session_state.get("fraudlens_model_comparison")
+    saved_comparison_file = st.session_state.get("fraudlens_comparison_file_name")
+
+    if saved_comparison is not None and saved_comparison_file == uploaded_file.name:
+        st.markdown("### Side-by-side model results")
+        st.dataframe(
+            saved_comparison,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        if "Fraud F1-score (%)" in saved_comparison.columns:
+            st.markdown("#### Fraud F1-score by model")
+            f1_chart = saved_comparison.set_index("Model")[
+                "Fraud F1-score (%)"
+            ].sort_values(ascending=False)
+            st.bar_chart(f1_chart)
+            st.caption(
+                "These metrics compare predictions with the Class labels in the uploaded CSV. "
+                "Use a held-out test dataset for a fair model evaluation."
+            )
+        else:
+            st.info(
+                "The uploaded CSV has no Class column, so actual accuracy, precision, "
+                "recall, and F1-score cannot be calculated. The table compares prediction counts only."
+            )
+
     if st.button(
         "Analyze transactions",
         use_container_width=True,

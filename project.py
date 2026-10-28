@@ -59,21 +59,45 @@ plt.tight_layout()
 plt.savefig("class_distribution.png", dpi=150, bbox_inches="tight")
 plt.close()
 
+
 amount_df = df[["Amount", "Class"]].copy()
+
 amount_df["Transaction Type"] = amount_df["Class"].map({
     0: "Legitimate",
     1: "Fraudulent"
 })
 
+# Verify both classes are included
+print("\nTransactions plotted by class:")
+print(amount_df["Transaction Type"].value_counts())
+
+
 plt.figure(figsize=(9, 5))
-sns.boxplot(data=amount_df, x="Transaction Type", y="Amount")
+
+sns.boxplot(
+    data=df,
+    x="Class",
+    y="Amount",
+    order=[0, 1]
+)
+
+plt.xticks([0, 1], ["Legitimate", "Fraudulent"])
 plt.yscale("symlog", linthresh=1)
 plt.title("Transaction Amount Comparison")
 plt.xlabel("Transaction Type")
 plt.ylabel("Transaction Amount (symlog scale)")
+
 plt.tight_layout()
-plt.savefig("amount_comparison_symlog.png", dpi=150, bbox_inches="tight")
+plt.savefig(
+    "amount_comparison_symlog.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+import os
+print("Chart saved at:", os.path.abspath("amount_comparison_symlog.png"))
 plt.close()
+
+
 
 print("\nLEGITIMATE TRANSACTION AMOUNTS")
 print(df[df["Class"] == 0]["Amount"].describe())
@@ -295,3 +319,58 @@ results.to_csv("model_comparison.csv", index=False)
 print("\nRandom Forest model saved: fraud_model.pkl")
 print("XGBoost model saved: xgboost_fraud_model.pkl")
 print("Model comparison saved: model_comparison.csv")
+
+
+# -------------------------------
+# CONFUSION MATRIX HEATMAPS
+# -------------------------------
+
+# Reuse predictions already generated above
+predictions = {
+    "Logistic Regression": y_pred,
+    "Random Forest": rf_pred,
+    "XGBoost": xgb_predictions,
+    "Isolation Forest": iso_predictions
+}
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for ax, (model_name, model_predictions) in zip(
+    axes, predictions.items()
+):
+    cm = confusion_matrix(
+        y_test,
+        model_predictions,
+        labels=[0, 1]
+    )
+
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=["Legitimate (0)", "Fraud (1)"],
+        yticklabels=["Legitimate (0)", "Fraud (1)"],
+        ax=ax
+    )
+
+    ax.set_title(model_name, fontsize=13, fontweight="bold")
+    ax.set_xlabel("Predicted Class")
+    ax.set_ylabel("Actual Class")
+
+plt.suptitle(
+    "FraudLens - Confusion Matrix Analysis",
+    fontsize=17,
+    fontweight="bold"
+)
+
+plt.tight_layout()
+plt.savefig(
+    "confusion_matrices.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.close()
+
+print("\nConfusion matrix heatmaps saved: confusion_matrices.png")

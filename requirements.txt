@@ -1,3 +1,9 @@
+
 streamlit
-groq
-python-dotenv
+pandas
+numpy
+scikit-learn
+xgboost
+joblib
+matplotlib
+seaborn
